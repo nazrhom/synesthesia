@@ -40,13 +40,10 @@ function toArrayBuffer(buffer) {
 
 function getAverage(u8IntArray) {
   var total = 0
-  var count = 0
   for (var i = 0; i < u8IntArray.length; ++i) {
-    if (u8IntArray[i] !== 0) count++
     total += u8IntArray[i]
   }
-  if (count === 0) return count
-  else return total / count
+  return total / u8IntArray.length
 }
 
 function rgbToHex(R,G,B) {return toHex(R)+toHex(G)+toHex(B)}
