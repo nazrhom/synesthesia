@@ -2,9 +2,27 @@ var fs = require('fs')
 
 var box = document.getElementById('box')
 var box2 = document.getElementById('box2')
+
+var Normalizer = require('./normalizer.js')
+
+var R_NORMALIZER = new Normalizer(25, 255, {stabilization_rate: 500})
+var G_NORMALIZER = new Normalizer(25, 255, {stabilization_rate: 500})
+var B_NORMALIZER = new Normalizer(25, 255, {stabilization_rate: 500})
+
+var R1_NORMALIZER = new Normalizer(25, 255, {stabilization_rate: 50000, old: false})
+var G1_NORMALIZER = new Normalizer(25, 255, {stabilization_rate: 50000, old: false})
+var B1_NORMALIZER = new Normalizer(25, 255, {stabilization_rate: 50000, old: false})
+
+// var H_NORMALIZER = new Normalizer(0, 360)
+// var S_NORMALIZER = new Normalizer(10, 100)
+// var L_NORMALIZER = new Normalizer(10, 100)
+
 // Interesting parameters to tweak!
-var SMOOTHING = 0.75
+var SMOOTHING = 0.7
 var FFT_SIZE = 2048
+
+var SMOOTHING2 = 0.7
+var FFT_SIZE2 = 2048
 
 var H_SCALING_FACTOR = 1
 var S_SCALING_FACTOR = 0.9
@@ -14,20 +32,7 @@ var R_SCALING_FACTOR = 1
 var G_SCALING_FACTOR = 1
 var B_SCALING_FACTOR = 3.3
 
-// Sub-bass 20-60 Hz
-// Bass 60-250 Hz
-
-// Low Midrange 250-500 Hz
-// Midrange 500-2000 Hz
-
-// Upper Midrange 2-4 kHz
-// Presence and Brillance 4-20 kHz
-
-
-
 var context = new AudioContext()
-var audiobuf
-var dataCollected
 
 function toArrayBuffer(buffer) {
     var ab = new ArrayBuffer(buffer.length)
@@ -38,13 +43,7 @@ function toArrayBuffer(buffer) {
     return ab
 }
 
-function getAverage(u8IntArray) {
-  var total = 0
-  for (var i = 0; i < u8IntArray.length; ++i) {
-    total += u8IntArray[i]
-  }
-  return total / u8IntArray.length
-}
+
 
 function rgbToHex(R,G,B) {return toHex(R)+toHex(G)+toHex(B)}
 function toHex(n) {
@@ -55,78 +54,96 @@ function toHex(n) {
       + "0123456789ABCDEF".charAt(n%16);
 }
 
-function syncStream(node){ // should be done by api itself. and hopefully will.
-    var buf8 = new Uint8Array(node.buf);
-    buf8.indexOf = Array.prototype.indexOf;
-    var i=node.sync, b=buf8;
-    while(1) {
-        node.retry++;
-        console.log(i)
-        i=b.indexOf(0xFF,i); if(i==-1 || (b[i+1] & 0xE0 == 0xE0 )) break;
-        i++;
-    }
-    if(i!=-1) {
-        var tmp=node.buf.slice(i); //carefull there it returns copy
-        delete(node.buf); node.buf=null;
-        node.buf=tmp;
-        node.sync=i;
-        return true;
-    }
-    return false;
+function getAverage(u8IntArray) {
+  var total = 0
+  for (var i = 0; i < u8IntArray.length; ++i) {
+    total += u8IntArray[i]
+  }
+  var average = total / u8IntArray.length
+  return average
 }
 
-function play(time) {
+function play(buffer, time) {
   var source = context.createBufferSource()
   var analyser = context.createAnalyser()
+  var analyser2 = context.createAnalyser()
 
-  source.buffer = audiobuf
-  analyser.connect(context.destination)
+  source.buffer = buffer
 
   source.connect(analyser)
+  analyser.connect(analyser2)
+  analyser2.connect(context.destination)
+
 
   source.start(time)
   console.log('playing\nanalysis starting')
 
-  gatherData(analyser)
+  gatherData(analyser, analyser2)
 
 }
 
-function gatherData(analyser) {
+function gatherData(analyser, analyser2) {
   analyser.smoothingTimeConstant = SMOOTHING
   analyser.fftSize = FFT_SIZE
-  // analyser.maxDecibels = 255
-  var freqs = new Uint8Array(analyser.frequencyBinCount)
-  analyser.getByteFrequencyData(freqs)
 
+  analyser2.smoothingTimeConstant = SMOOTHING2
+  analyser2.fftSize = FFT_SIZE2
+
+  var freqs = new Uint8Array(analyser.frequencyBinCount)
+  var freqs2 = new Uint8Array(analyser2.frequencyBinCount)
+
+  analyser.getByteFrequencyData(freqs)
+  analyser2.getByteFrequencyData(freqs2)
+
+
+  // Every index accounts for sampleRate / (FFT_SIZE/2) Hz (44100 / 1024 ~= 43)these indexes correspond to
+  // Sub-bass 20-60 Hz
+  // Bass 60-250 Hz
   var first = freqs.subarray(1, 10)
+
+  // Low Midrange 250-500 Hz
+  // Midrange 500-2000 Hz
   var second = freqs.subarray(10, 100)
+  // Upper Midrange 2-4 kHz
+  // Presence and Brillance 4-20 kHz
   var third = freqs.subarray(100, freqs.length - 1)
 
-  var R = parseInt(getAverage(first) * R_SCALING_FACTOR)
-  var G = parseInt(getAverage(second) * G_SCALING_FACTOR)
-  var B = parseInt(getAverage(third) * B_SCALING_FACTOR)
+  var first2 = freqs2.subarray(1, 10)
 
-  var H = parseInt(getAverage(first) * H_SCALING_FACTOR)
-  var S = parseInt(((getAverage(second) * 100) / 255) * S_SCALING_FACTOR)
-  var L = parseInt(((getAverage(third) * 100) / 255) * L_SCALING_FACTOR)
+  var second2 = freqs2.subarray(10, 100)
+
+  var third2 = freqs2.subarray(100, freqs.length - 1)
+
+
+  var R = R_NORMALIZER.getNormalizedAverage(first)
+  var G = G_NORMALIZER.getNormalizedAverage(second)
+  var B = B_NORMALIZER.getNormalizedAverage(third)
+
+  var R1 = R1_NORMALIZER.getNormalizedAverage(first2)
+  var G1 = G1_NORMALIZER.getNormalizedAverage(second2)
+  var B1 = B1_NORMALIZER.getNormalizedAverage(third2)
 
   console.log('R ' + R + ' G ' + G + ' B ' + B)
-  console.log('H ' + H + ' S ' + S + ' L ' + L)
+  // console.log('H ' + H + ' S ' + S + ' L ' + L)
 
   box.style.background = '#' + rgbToHex(R,G,B)
-  box2.style.background = 'hsl(' + H + ',' + S + '%,' + L +'%)'
+  box2.style.background = '#' + rgbToHex(R1,G1,B1)
 
-  setTimeout(function() {
-    gatherData(analyser)
-  }, 1000 / 100)
+  // box2.style.background = 'hsl(' + H + ',' + S + '%,' + L +'%)'
+
+  // setTimeout(function() {
+  //   gatherData(analyser)
+  // }, 1000 / 100)
+  window.requestAnimationFrame(function() {
+    return gatherData(analyser, analyser2)
+  })
 }
 
 function decode(audio, cb) {
   context.decodeAudioData(audio,
   function (buf) {
-    audiobuf = buf
     console.log('decodeAudioData complete')
-    return cb()
+    return cb(buf)
   },
   function (err) {
     console.log('decodeAudioData error ' + err)
@@ -140,6 +157,6 @@ function loadFile(filePath, cb) {
   })
 }
 
-loadFile('Youth.wav', function() {
-  play(0)
+loadFile('youth.wav', function(buffer) {
+  play(buffer, 0)
 })
