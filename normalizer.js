@@ -18,18 +18,15 @@ function Normalizer (min, max, opts) {
 
 Normalizer.prototype.average = function (u8IntArray) {
   var total = 0
-  var count = 0
   for (var i = 0; i < u8IntArray.length; ++i) {
     if (u8IntArray[i] != 0) this.freqMask[i]++
-    if ((this.freqMask[i] / this.cycles) > this.freqfreq) {
-      count++
-      total += u8IntArray[i]
-    }
+
+    total += u8IntArray[i] * Math.max(this.freqMask[i] / this.cycles, this.freqfreq)
   }
   // if count is 0 just bail without incrementing cycles or attempting to update
-  if (count === 0) return count
+  // if (count === 0) return count
 
-  var average = total / count
+  var average = total / u8IntArray.length
 
   this.update(average)
 
