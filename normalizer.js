@@ -10,21 +10,28 @@ function Normalizer (min, max, opts) {
   this.observedMax = parseInt(max / 2)
   this.minCount = 0
   this.maxCount = 0
+  this.cycles = 0
+  // this is u8IntArray.length (1024)
+  this.freqMask = new Uint8Array(1024)
 }
 
 Normalizer.prototype.average = function (u8IntArray) {
   var total = 0
+  var count = 0
   for (var i = 0; i < u8IntArray.length; ++i) {
-    total += u8IntArray[i]
+    if (u8IntArray[i] != 0) freqMask[i]++
+    if ((freqMask[i] / cycles) > this.freqfreq {
+      count++
+      total += u8IntArray[i]
+    }
   }
-  var average = total / u8IntArray.length
-  //check invariants
-  // var local_max = this.observedMax
-  // var local_min = this.observedMin
-  this.update(average)
-  // if (local_max > this.observedMax) throw Error('invariant failed')
-  // if (local_min < this.observedMin) throw Error('invariant failed')
+  // if count is 0 just bail without incrementing cycles or attempting to update
+  if (count === 0) return count
+  
+  var average = total / count
 
+  this.update(average)
+  this.cyles++
   return average
 }
 
@@ -61,9 +68,6 @@ Normalizer.prototype.update = function (val) {
       this.observedMax = this.observedMax - (Math.pow(this.observedMax - val, 1 / this.stabilization_rate))
     }
   }
-
-
-
   return
 }
 
