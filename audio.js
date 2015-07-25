@@ -5,13 +5,13 @@ var box2 = document.getElementById('box2')
 
 var Normalizer = require('./normalizer.js')
 
-var R_NORMALIZER = new Normalizer(25, 255, {stabilization_rate: 500})
-var G_NORMALIZER = new Normalizer(25, 255, {stabilization_rate: 500})
-var B_NORMALIZER = new Normalizer(25, 255, {stabilization_rate: 500})
+var R_NORMALIZER = new Normalizer(25, 255, {freqfreq: 0.01, stabilization_rate: 500, old: false})
+var G_NORMALIZER = new Normalizer(25, 255, {freqfreq: 0.01, stabilization_rate: 500, old: false})
+var B_NORMALIZER = new Normalizer(25, 255, {freqfreq: 0.01, stabilization_rate: 500, old: false})
 
-var R1_NORMALIZER = new Normalizer(25, 255, {stabilization_rate: 50000, old: false})
-var G1_NORMALIZER = new Normalizer(25, 255, {stabilization_rate: 50000, old: false})
-var B1_NORMALIZER = new Normalizer(25, 255, {stabilization_rate: 50000, old: false})
+var R1_NORMALIZER = new Normalizer(25, 255, {freqfreq: 0, stabilization_rate: 500, old: false})
+var G1_NORMALIZER = new Normalizer(25, 255, {freqfreq: 0, stabilization_rate: 500, old: false})
+var B1_NORMALIZER = new Normalizer(25, 255, {freqfreq: 0, stabilization_rate: 500, old: false})
 
 // var H_NORMALIZER = new Normalizer(0, 360)
 // var S_NORMALIZER = new Normalizer(10, 100)

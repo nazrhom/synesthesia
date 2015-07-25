@@ -12,6 +12,7 @@ function Normalizer (min, max, opts) {
   this.maxCount = 0
   this.cycles = 0
   // this is u8IntArray.length (1024)
+  this.freqfreq = opts.freqfreq
   this.freqMask = new Uint8Array(1024)
 }
 
@@ -19,27 +20,30 @@ Normalizer.prototype.average = function (u8IntArray) {
   var total = 0
   var count = 0
   for (var i = 0; i < u8IntArray.length; ++i) {
-    if (u8IntArray[i] != 0) freqMask[i]++
-    if ((freqMask[i] / cycles) > this.freqfreq {
+    if (u8IntArray[i] != 0) this.freqMask[i]++
+    if ((this.freqMask[i] / this.cycles) > this.freqfreq) {
       count++
       total += u8IntArray[i]
     }
   }
   // if count is 0 just bail without incrementing cycles or attempting to update
   if (count === 0) return count
-  
+
   var average = total / count
 
   this.update(average)
-  this.cyles++
+
+  if(this.verbose) console.log('freqMask', this.freqMask);
+  if(this.verbose) console.log('cycles', this.cycles);
+  this.cycles++
   return average
 }
 
 Normalizer.prototype.normalize = function (val) {
-  if (this.verbose) console.log('value', val)
-  if (this.verbose) console.log('observedMax', this.observedMax);
-  if (this.verbose) console.log('observedMin', this.observedMin);
-  if (this.verbose) console.log('partial', ( (val - this.observedMin) ))
+  // if (this.verbose) console.log('value', val)
+  // if (this.verbose) console.log('observedMax', this.observedMax);
+  // if (this.verbose) console.log('observedMin', this.observedMin);
+  // if (this.verbose) console.log('partial', ( (val - this.observedMin) ))
   return ( ( (val - this.observedMin) * (this.max - this.min) ) / (this.observedMax - this.observedMin) ) + this.min
 }
 
